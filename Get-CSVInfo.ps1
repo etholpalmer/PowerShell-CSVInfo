@@ -25,7 +25,7 @@ param(
 )
 
 begin {
-    if($null -ne $hdrRow) { $HasHeaderRow = $true}     # if none is specified assume it's there
+    if($hdrRow) { $HasHeaderRow = $true}     # if none is specified assume it's there
 
     [int]$cnt=0;
 }
@@ -33,7 +33,7 @@ begin {
 Process {
     $cnt++;
 
-    if ($HasHeaderRow -and ($null -ne $hdrRow)) {
+    if ($HasHeaderRow -and $hdrRow) {
         [string]$FirstLine = (Get-Content $CSVFiles -First 1).Replace(" ","").ToUpper()
         $hdrRow=$hdrRow.Replace(" ","").ToUpper()
         $HeaderMatch = [bool]($hdrRow -clike $FirstLine)
@@ -41,5 +41,17 @@ Process {
 
     # Start getting information about the file.
     $Results = @{}
+    $fileContent = Get-Content $CSVFiles
+    $Lines = [int]($fileContent | Measure-Object -Line).Lines
+    $NonBlankLines = [int]($fileContent | Select-String . | Measure-Object).Count
+    $BlankLines = $Lines - $NonBlankLines
+    $HdrCnt = if($HasHeaderRow) {1} else {0}
+    $ValidRecords = [int]($fileContent | Select-String $RELinePtrn | Measure-Object).Count
+    [bool]$VerifiedRecordsExist = ($ValidRecords -ge 1)
+
+    $Results.Add("FileName", $CSVFiles.FullName)
+
+    $Results.Add("HasHeader", $HasHeaderRow)
+    $Results.Add("LineCount", $Lines)
     
 }
