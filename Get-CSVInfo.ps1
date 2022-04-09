@@ -1,5 +1,6 @@
 [CmdletBinding()]
 param(
+    # The CSV file(s) to process.
     [Parameter(Mandatory, 
         ValueFromPipeline,
         HelpMessage="One or more CSV files to be evaluated."
@@ -12,9 +13,33 @@ param(
         return $true
     })]
     [System.IO.FileInfo[]]$CSVFiles,
-
-    [Parameter(HelpMessage="The sample of the expected Header Row")]
+    # The Header Row, used to validate the CSV file being processed.
+    [Parameter(HelpMessage="The expected Header Row")]
     [string]$hdrRow=$null,
     # The Regular Expression used to read each line from the CSV file.
     [Parameter(HelpMessage="The Regular Expression used to read each CSV file line.")]
-    [string]$RELinePtrn=
+    [string]$RELinePtrn="(?imx-sn:)((,|\n|^)([^,\r\n^])*)+",
+    # Specify weather there's a header row or not
+    [Parameter(HelpMessage="Determines if there's a header row.")]
+    [switch]$HasHeaderRow
+)
+
+begin {
+    if($null -ne $hdrRow) { $HasHeaderRow = $true}     # if none is specified assume it's there
+
+    [int]$cnt=0;
+}
+
+Process {
+    $cnt++;
+
+    if ($HasHeaderRow -and ($null -ne $hdrRow)) {
+        [string]$FirstLine = (Get-Content $CSVFiles -First 1).Replace(" ","").ToUpper()
+        $hdrRow=$hdrRow.Replace(" ","").ToUpper()
+        $HeaderMatch = [bool]($hdrRow -clike $FirstLine)
+    }
+
+    # Start getting information about the file.
+    $Results = @{}
+    
+}
