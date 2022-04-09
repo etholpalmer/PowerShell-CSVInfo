@@ -32,11 +32,14 @@ begin {
 
 Process {
     $cnt++;
+    $f = $CSVFiles
 
     if ($HasHeaderRow -and $hdrRow) {
         [string]$FirstLine = (Get-Content $CSVFiles -First 1).Replace(" ","").ToUpper()
         $hdrRow=$hdrRow.Replace(" ","").ToUpper()
         $HeaderMatch = [bool]($hdrRow -clike $FirstLine)
+    } else {
+        [bool]$HeaderMatch = $false
     }
 
     # Start getting information about the file.
@@ -52,11 +55,13 @@ Process {
     $Results.Add("FileName", $CSVFiles.FullName)
 
     $Results.Add("HasHeader", $HasHeaderRow)
+    $Results.Add("HeaderMatch", $HeaderMatch)
     $Results.Add("LineCount", $Lines)
 
     $Results.Add("EmptyRows", $BlankLines)
     $Results.Add("Records", [int]($Lines - $HdrCnt - $BlankLines))
     $Results.Add("VerifiedRecordsExist", $VerifiedRecordsExist)
+    $Results.Add("HeaderMatches", $HeaderMatch)
 
     $RecordExist = if($Results["Records"] -ge 1) {
         Write-Information "[$($CSVFile.FileName)] has $($Results["Records"]) records of which $($ValidRecords) are valid."; 
@@ -69,12 +74,14 @@ Process {
 
     $rVal = @{};
     $rVal.Add("FileNumber", $cnt)
-    $rVal.Add("File", $CSVFile)
-    $rVal.Add("HasHeader", $HasHdrRow)
+    $rVal.Add("FilePath", $f.FullName)
+    $rVal.Add("HasHeader", $HasHeaderRow)
     $rVal.Add("LineCount", $Lines)
     $rVal.Add("EmptyRows", $BlankLines)
     $rVal.Add("Records", [int]($Lines - $HdrCnt - $BlankLines))
     $rVal.Add("ValidRecords", $ValidRecords)
+    $rVal.Add("HeaderMatches", $HeaderMatch)
+    $rVal.Add("Details", $Results)
     $rVal.Add("Status", $AllGood)
 
     return (New-Object -TypeName psobject -Property $rVal)
