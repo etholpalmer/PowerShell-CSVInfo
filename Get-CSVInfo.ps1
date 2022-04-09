@@ -53,5 +53,33 @@ Process {
 
     $Results.Add("HasHeader", $HasHeaderRow)
     $Results.Add("LineCount", $Lines)
-    
+
+    $Results.Add("EmptyRows", $BlankLines)
+    $Results.Add("Records", [int]($Lines - $HdrCnt - $BlankLines))
+    $Results.Add("VerifiedRecordsExist", $VerifiedRecordsExist)
+
+    $RecordExist = if($Results["Records"] -ge 1) {
+        Write-Information "[$($CSVFile.FileName)] has $($Results["Records"]) records of which $($ValidRecords) are valid."; 
+        $true;
+    } else {
+        Write-Information "There are no records"; 
+        $false;
+    }
+    $AllGood = (($Results["HasHeader"]) -and ($RecordExist) -and ($VerifiedRecordsExist))
+
+    $rVal = @{};
+    $rVal.Add("FileNumber", $cnt)
+    $rVal.Add("File", $CSVFile)
+    $rVal.Add("HasHeader", $HasHdrRow)
+    $rVal.Add("LineCount", $Lines)
+    $rVal.Add("EmptyRows", $BlankLines)
+    $rVal.Add("Records", [int]($Lines - $HdrCnt - $BlankLines))
+    $rVal.Add("ValidRecords", $ValidRecords)
+    $rVal.Add("Status", $AllGood)
+
+    return (New-Object -TypeName psobject -Property $rVal)
+}
+
+End {
+    Write-Information -Message "Processed $($cnt) file(s)"
 }
