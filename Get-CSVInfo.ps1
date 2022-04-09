@@ -1,6 +1,9 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory, ValueFromPipeline)]
+    [Parameter(Mandatory, 
+        ValueFromPipeline,
+        HelpMessage="One or more CSV files to be evaluated."
+    )]
     [Alias('Path')]
     [ValidateScript({
         if(-not ($_ | Test-Path ))                { throw "File or folder does not exist!" }
@@ -9,5 +12,9 @@ param(
         return $true
     })]
     [System.IO.FileInfo[]]$CSVFiles,
+
+    [Parameter(HelpMessage="The sample of the expected Header Row")]
     [string]$hdrRow=$null,
+    # The Regular Expression used to read each line from the CSV file.
+    [Parameter(HelpMessage="The Regular Expression used to read each CSV file line.")]
     [string]$RELinePtrn=
