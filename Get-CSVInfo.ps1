@@ -13,19 +13,22 @@ param(
         return $true
     })]
     [System.IO.FileInfo[]]$CSVFiles,
+
     # The Header Row, used to validate the CSV file being processed.
     [Parameter(HelpMessage="The expected Header Row")]
     [string]$hdrRow=$null,
+
     # The Regular Expression used to read each line from the CSV file.
     [Parameter(HelpMessage="The Regular Expression used to read each CSV file line.")]
     [string]$RELinePtrn="(?imx-sn:)((,|\n|^)([^,\r\n^])*)+",
+    
     # Specify weather there's a header row or not
     [Parameter(HelpMessage="Determines if there's a header row.")]
     [switch]$HasHeaderRow
 )
 
 begin {
-    if($hdrRow) { $HasHeaderRow = $true}     # if none is specified assume it's there
+    if($hdrRow) { $HasHeaderRow = $true }     # if one is specified assume it's there a header.
 
     [int]$cnt=0;
 }
@@ -37,6 +40,7 @@ Process {
     if ($HasHeaderRow -and $hdrRow) {
         [string]$FirstLine = (Get-Content $CSVFiles -First 1).Replace(" ","").ToUpper()
         $hdrRow=$hdrRow.Replace(" ","").ToUpper()
+        $fieldCount = ([regex]::Matches($hdrRow,",")).Count + 1
         $HeaderMatch = [bool]($hdrRow -clike $FirstLine)
     } else {
         [bool]$HeaderMatch = $false
@@ -44,17 +48,18 @@ Process {
 
     # Start getting information about the file.
     $Results = @{}
-    $fileContent = Get-Content $CSVFiles
+    $fileContent = Get-Content $f
     $Lines = [int]($fileContent | Measure-Object -Line).Lines
-    $NonBlankLines = [int]($fileContent | Select-String . | Measure-Object).Count
-    $BlankLines = $Lines - $NonBlankLines
+    #$NonBlankLines = [int]($fileContent | Where-Object {$_.trim() -ne ""} | Measure-Object).Count
+    $BlankLines = (Select-String -Path $f -Pattern "^\s*$"  | Measure-Object).Count
     $HdrCnt = if($HasHeaderRow) {1} else {0}
-    $ValidRecords = [int]($fileContent | Select-String $RELinePtrn | Measure-Object).Count
+    $ValidRecords = [int](Select-String -Path $f -Pattern "," | Measure-Object).Count
     [bool]$VerifiedRecordsExist = ($ValidRecords -ge 1)
 
-    $Results.Add("FileName", $CSVFiles.FullName)
+    $Results.Add("FileName", $f.FullName)
 
     $Results.Add("HasHeader", $HasHeaderRow)
+    if($HasHeaderRow) {$Results.Add("FieldCount", $fieldCount)}
     $Results.Add("HeaderMatch", $HeaderMatch)
     $Results.Add("LineCount", $Lines)
 
@@ -64,7 +69,7 @@ Process {
     $Results.Add("HeaderMatches", $HeaderMatch)
 
     $RecordExist = if($Results["Records"] -ge 1) {
-        Write-Information "[$($CSVFile.FileName)] has $($Results["Records"]) records of which $($ValidRecords) are valid."; 
+        Write-Information "[$($f.FileName)] has $($Results["Records"]) records of which $($ValidRecords) are valid."; 
         $true;
     } else {
         Write-Information "There are no records"; 
@@ -81,10 +86,12 @@ Process {
     $rVal.Add("Records", [int]($Lines - $HdrCnt - $BlankLines))
     $rVal.Add("ValidRecords", $ValidRecords)
     $rVal.Add("HeaderMatches", $HeaderMatch)
+    if($HasHeaderRow){$rVal.Add("FieldCount", $fieldCount);}
     $rVal.Add("Details", $Results)
     $rVal.Add("Status", $AllGood)
 
     return (New-Object -TypeName psobject -Property $rVal)
+    #return ([PSCustomObject]@{Name = $rVal})
 }
 
 End {
